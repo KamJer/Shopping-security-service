@@ -12,16 +12,7 @@ public class DatabaseUtil {
     public static User toUser(UserDto userDto) {
         return User.builder()
                 .userName(userDto.getUserName())
-                .password(userDto.getPassword())
                 .savedTime(LocalDateTime.now())
-                .build();
-    }
-
-    public static UserDto toUserDto(User user) {
-        return UserDto.builder()
-                .userName(user.getUserName())
-                .password(user.getPassword())
-                .savedTime(user.getSavedTime())
                 .build();
     }
 }

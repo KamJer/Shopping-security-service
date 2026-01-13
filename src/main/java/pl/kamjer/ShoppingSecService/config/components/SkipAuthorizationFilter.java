@@ -16,7 +16,7 @@ public class SkipAuthorizationFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
         String path = request.getRequestURI();
-        if (path.startsWith("/user/log/")) {
+        if (path.startsWith("/user/log")) {
             request = new HttpServletRequestWrapper(request) {
                 @Override
                 public String getHeader(String name) {

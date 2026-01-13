@@ -8,6 +8,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import pl.kamjer.ShoppingSecService.model.User;
 import pl.kamjer.ShoppingSecService.model.dto.UserDto;
+import pl.kamjer.ShoppingSecService.model.dto.UserRequestDto;
 import pl.kamjer.ShoppingSecService.service.UserService;
 
 import java.time.LocalDateTime;
@@ -20,19 +21,19 @@ public class UserController {
 
     private UserService userService;
 
-    @PutMapping
-    public ResponseEntity<?> putUser(@RequestBody UserDto user) {
-        userService.updateUser(user);
+    @PutMapping(path = "/savedTime")
+    public ResponseEntity<?> putUserSavedTime(@RequestBody UserDto user) {
+        userService.updateUserSavedTime(user);
         return ResponseEntity.ok().build();
     }
 
     @PostMapping
-    public ResponseEntity<LocalDateTime> postUser(@Valid @RequestBody UserDto user) {
+    public ResponseEntity<LocalDateTime> postUser(@Valid @RequestBody UserRequestDto user) {
         return ResponseEntity.ok(userService.insertUser(user));
     }
 
     @PostMapping(path = "/log")
-    public ResponseEntity<Boolean> logUser(@RequestBody UserDto user) {
+    public ResponseEntity<Boolean> logUser(@RequestBody UserRequestDto user) {
         return ResponseEntity.ok(userService.logUser(user));
     }
 

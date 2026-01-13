@@ -33,5 +33,7 @@ build/
 .vscode/
 
 **/src/main/resources/application-secret.properties
+**/src/main/resources/shopping_list.cer
+**/src/main/resources/user_shopping_list_keystore.p12
 
 **/logs/

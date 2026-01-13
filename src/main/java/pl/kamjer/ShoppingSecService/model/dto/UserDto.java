@@ -16,6 +16,5 @@ public class UserDto {
     @UniqUserNameConstraint
     @NotEmpty
     private String userName;
-    private String password;
     private LocalDateTime savedTime;
 }
