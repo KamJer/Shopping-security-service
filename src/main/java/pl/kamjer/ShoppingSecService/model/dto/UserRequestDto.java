@@ -4,6 +4,7 @@ import jakarta.validation.constraints.NotEmpty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
+import pl.kamjer.ShoppingSecService.service.Role;
 import pl.kamjer.ShoppingSecService.validation.UniqUserNameConstraint;
 
 import java.time.LocalDateTime;
@@ -17,4 +18,5 @@ public class UserRequestDto {
     private String userName;
     private String password;
     private LocalDateTime savedTime;
+    private Role role;
 }

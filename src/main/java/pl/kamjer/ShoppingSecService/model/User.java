@@ -3,10 +3,12 @@ package pl.kamjer.ShoppingSecService.model;
 import jakarta.persistence.*;
 import lombok.*;
 import org.springframework.security.core.userdetails.UserDetails;
+import pl.kamjer.ShoppingSecService.service.Role;
 import pl.kamjer.ShoppingSecService.validation.UniqUserNameConstraint;
 
 import java.io.Serializable;
 import java.time.LocalDateTime;
+import java.util.Collections;
 
 @AllArgsConstructor
 @NoArgsConstructor
@@ -26,6 +28,9 @@ public class User implements Serializable {
     @Version
     @Column(name = "saved_time")
     private LocalDateTime savedTime;
+    @Column(name = "role")
+    @Enumerated(EnumType.STRING)
+    private Role role;
 
     public UserDetails convertToSpringUser() {
         return org.springframework.security.core.userdetails.User.builder()

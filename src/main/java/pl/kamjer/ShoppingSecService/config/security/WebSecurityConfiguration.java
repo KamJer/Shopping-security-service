@@ -3,21 +3,19 @@ package pl.kamjer.ShoppingSecService.config.security;
 import lombok.AllArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.ProviderManager;
-import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
-import org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity;
+import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
-import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-import pl.kamjer.ShoppingSecService.config.components.SkipAuthorizationFilter;
-
-import static org.springframework.security.config.Customizer.withDefaults;
+import pl.kamjer.ShoppingSecService.service.JwtService;
 
 /**
  * Central configuration class for Spring Security in the application.
@@ -32,19 +30,20 @@ import static org.springframework.security.config.Customizer.withDefaults;
 @Configuration
 @EnableWebSecurity
 @AllArgsConstructor
-@EnableGlobalMethodSecurity(prePostEnabled = true)
+@EnableMethodSecurity
 public class WebSecurityConfiguration {
+
+    private AuthEntryPoint unauthorizedHandler;
+
+    private JwtService jwtService;
+
+    private JwtAuthFilter jwtAuthFilter;
+
     /**
      * User details service for loading user information from the database.
      * This is used by Spring Security for authentication purposes.
      */
-    private final UserDetailService userDetailsService;
-
-    /**
-     * Custom filter that allows skipping authorization for specific endpoints.
-     * This filter is added before the default UsernamePasswordAuthenticationFilter.
-     */
-    private final SkipAuthorizationFilter skipAuthorizationFilter;
+    private final UserDetailService userDetailService;
 
     /**
      * Configures the security filter chain for the application.
@@ -63,40 +62,29 @@ public class WebSecurityConfiguration {
     public SecurityFilterChain filterChain(HttpSecurity httpSecurity) throws Exception {
         httpSecurity
                 .csrf(AbstractHttpConfigurer::disable)
-                .addFilterBefore(skipAuthorizationFilter, UsernamePasswordAuthenticationFilter.class)
+                .sessionManagement(sessionManagement ->
+                        sessionManagement.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+                )
                 .authorizeHttpRequests((authz) ->
-                        authz.anyRequest().permitAll())
-                .httpBasic(withDefaults());
+                        authz
+                                .requestMatchers(HttpMethod.GET, "/user").permitAll()
+                                .requestMatchers(HttpMethod.GET, "/user/logout").permitAll()
+                                .requestMatchers("/user/log").permitAll()
+                                .requestMatchers(HttpMethod.POST, "/user").permitAll()
+                                .anyRequest().authenticated()
 
-        httpSecurity.userDetailsService(userDetailsService);
+                )
+                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
         return httpSecurity.build();
     }
 
-    /**
-     * Configures and returns the AuthenticationManager bean.
-     * This bean is responsible for managing the authentication process.
-     *
-     * @param userDetailsService The service used to load user details.
-     * @param passwordEncoder    The encoder used to verify passwords.
-     * @return A configured AuthenticationManager.
-     */
     @Bean
     public AuthenticationManager authenticationManager(
-            UserDetailsService userDetailsService,
-            PasswordEncoder passwordEncoder) {
-        DaoAuthenticationProvider authenticationProvider = new DaoAuthenticationProvider();
-        authenticationProvider.setUserDetailsService(userDetailsService);
-        authenticationProvider.setPasswordEncoder(passwordEncoder);
-
-        return new ProviderManager(authenticationProvider);
+            AuthenticationConfiguration authenticationConfiguration
+    ) throws Exception {
+        return authenticationConfiguration.getAuthenticationManager();
     }
 
-    /**
-     * Provides a BCryptPasswordEncoder bean for securely encoding passwords.
-     * This is used by Spring Security to compare user-provided passwords with stored hashes.
-     *
-     * @return A new instance of BCryptPasswordEncoder.
-     */
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
