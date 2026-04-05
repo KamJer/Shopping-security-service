@@ -8,6 +8,6 @@ CREATE TABLE refresh_token (
         FOREIGN KEY (`user_name`)
         REFERENCES `user` (`user_name`)
         ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_uca1400_ai_ci;;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 ALTER TABLE `user` ADD COLUMN role VARCHAR(50) DEFAULT "USER";
