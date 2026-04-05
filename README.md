@@ -158,15 +158,3 @@ src/main/resources/
 ├── application*.properties
 └── db/migration/        # Flyway SQL
 ```
-
----
-
-## License
-
-Proprietary / unspecified — add a `LICENSE` file when you publish or distribute this software.
-
----
-
-## Maintainer
-
-Project artifact: `pl.kamjer:ShoppingSecService` — **ShoppingSecurityService**.
