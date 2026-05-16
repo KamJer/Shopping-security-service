@@ -44,6 +44,12 @@ public class UserController {
         return ResponseEntity.ok(userService.insertUser(user));
     }
 
+    @PostMapping(path = "/register")
+    public ResponseEntity<TokenDto> registerUser(@Valid @RequestBody UserRequestDto user) {
+        userService.insertUser(user);
+        return loginUser(user);
+    }
+
     @PostMapping(path = "/log")
     public ResponseEntity<TokenDto> loginUser(@RequestBody UserRequestDto user) {
         TokenDto tokens = userService.logUser(user);
