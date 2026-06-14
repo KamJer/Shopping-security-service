@@ -1,10 +1,11 @@
 package pl.kamjer.ShoppingSecService.service;
 
+import io.jsonwebtoken.ExpiredJwtException;
+import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.JwtParser;
 import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.MalformedJwtException;
 import io.jsonwebtoken.security.Keys;
-import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.stereotype.Service;
@@ -15,14 +16,13 @@ import pl.kamjer.ShoppingSecService.model.dto.TokenDto;
 import pl.kamjer.ShoppingSecService.repository.JwtRepository;
 
 import javax.crypto.SecretKey;
-import javax.swing.text.html.Option;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.Date;
-import java.util.Optional;
 import java.util.UUID;
 
+@Slf4j
 @Service
 public class JwtService {
     public final static int ACCESS_TOKEN_EXP_MIN = 15;
@@ -84,7 +84,9 @@ public class JwtService {
                     parseClaimsJws(token)
                     .getBody()
                     .getId();
-        } catch (MalformedJwtException ex) {
+        } catch (ExpiredJwtException ex) {
+            return ex.getClaims().getId();
+        } catch (JwtException ex) {
             throw new BadCredentialsException("Malformed token");
         }
     }
@@ -133,11 +135,12 @@ public class JwtService {
     public TokenDto refresh(String refreshToken) {
         String processedToken = refreshToken.startsWith("Bearer") ? refreshToken.substring(7) : refreshToken;
 
-        RefreshToken token = jwtRepository.findById(extractJti(processedToken))
+        RefreshToken token = jwtRepository.findByJtiWithLock(extractJti(processedToken))
                 .orElseThrow(() -> new BadCredentialsException("Refresh token not found"));
 
-
         if (token.isRevoked()) {
+            jwtRepository.revokeAllForUser(token.getUser().getUserName());
+            log.warn("Refresh token reuse detected for user: {}, all tokens revoked", token.getUser().getUserName());
             throw new BadCredentialsException("Token revoked");
         }
 
@@ -160,5 +163,8 @@ public class JwtService {
         return TokenDto.builder().refreshToken(newRefreshToken).accessToken(newAccessToken).build();
     }
 
-
+    @Transactional
+    public void revokeAllTokensForUser(String userName) {
+        jwtRepository.revokeAllForUser(userName);
+    }
 }

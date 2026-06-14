@@ -72,6 +72,7 @@ public class WebSecurityConfiguration {
                                 .requestMatchers(HttpMethod.GET, "/user/logout").permitAll()
                                 .requestMatchers("/user/log").permitAll()
                                 .requestMatchers(HttpMethod.POST, "/user").permitAll()
+                                .requestMatchers(HttpMethod.POST, "/user/register").permitAll()
                                 .anyRequest().authenticated()
 
                 )

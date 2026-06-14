@@ -4,11 +4,9 @@ import jakarta.persistence.*;
 import lombok.*;
 import org.springframework.security.core.userdetails.UserDetails;
 import pl.kamjer.ShoppingSecService.service.Role;
-import pl.kamjer.ShoppingSecService.validation.UniqUserNameConstraint;
 
 import java.io.Serializable;
 import java.time.LocalDateTime;
-import java.util.Collections;
 
 @AllArgsConstructor
 @NoArgsConstructor
@@ -16,7 +14,7 @@ import java.util.Collections;
 @Data
 @Entity
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
-@Table(name = "\"USER\"")
+@Table()
 public class User implements Serializable {
 
     @Id
@@ -36,7 +34,7 @@ public class User implements Serializable {
         return org.springframework.security.core.userdetails.User.builder()
                 .username(this.getUserName())
                 .password(this.getPassword())
-                .roles("USER")
+                .roles(this.role != null ? this.role.name() : "USER")
                 .build();
     }
 }

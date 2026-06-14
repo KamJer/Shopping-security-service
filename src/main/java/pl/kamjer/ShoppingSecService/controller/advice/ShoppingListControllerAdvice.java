@@ -32,7 +32,7 @@ public class ShoppingListControllerAdvice {
                     .append("\n");
         });
         log.error(errorStringBuilder.toString());
-        return ResponseEntity.status(HttpStatus.CONFLICT).body(errorStringBuilder.toString());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorStringBuilder.toString());
     }
 
     @ExceptionHandler({NoResourcesFoundException.class})
@@ -42,7 +42,7 @@ public class ShoppingListControllerAdvice {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ex.getMessage());
     }
 
-    @ExceptionHandler({HttpMessageNotReadableException.class, IllegalAccessError.class})
+    @ExceptionHandler({HttpMessageNotReadableException.class, IllegalAccessException.class})
     public ResponseEntity<String> handleDeserializeException(Exception ex, Principal principal) {
         String textForError = textForError(principal);
         log.error(textForError, ex);
@@ -54,6 +54,14 @@ public class ShoppingListControllerAdvice {
         String textForError = textForError(principal);
         log.error(textForError, ex);
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(ex.getMessage());
+    }
+
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<String> handleAllExceptions(Exception ex, Principal principal) {
+        String textForError = textForError(principal);
+        log.error(textForError, ex);
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body("An unexpected error occurred");
     }
 
     private String textForError(Principal principal) {

@@ -9,7 +9,6 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 import pl.kamjer.ShoppingSecService.model.dto.TokenDto;
 import pl.kamjer.ShoppingSecService.model.dto.UserDto;
@@ -60,11 +59,19 @@ public class UserController {
                 .maxAge(Duration.ofDays(REFRESH_TOKEN_EXP_DAYS))
                 .sameSite("Strict")
                 .build();
-        return ResponseEntity.ok().header(HttpHeaders.SET_COOKIE, refreshCookie.toString()).body(userService.logUser(user));
+        return ResponseEntity.ok().header(HttpHeaders.SET_COOKIE, refreshCookie.toString()).body(tokens);
     }
 
     @GetMapping(path = "/logout")
-    public ResponseEntity<Boolean> logoutUser() {
+    public ResponseEntity<Boolean> logoutUser(HttpServletRequest request) {
+        String refreshToken = parseRefreshTokenFromCookie(request);
+        if (refreshToken != null && jwtService.isRefreshValid(refreshToken)) {
+            try {
+                jwtService.revokeAllTokensForUser(jwtService.extractUserNameRefresh(refreshToken));
+            } catch (Exception e) {
+                log.warn("Could not revoke tokens on logout", e);
+            }
+        }
         ResponseCookie refreshCookie = ResponseCookie.from("refreshToken", "")
                 .httpOnly(true)
                 .secure(true)
@@ -96,12 +103,24 @@ public class UserController {
     }
 
     @GetMapping
-    public ResponseEntity<UserInfoDto> validateUser(@RequestParam String token) {
-        return ResponseEntity.ok(userService.validateUser(token));
+    public ResponseEntity<UserInfoDto> validateUser(@RequestHeader("Authorization") String authHeader) {
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            throw new BadCredentialsException("Invalid authorization header");
+        }
+        return ResponseEntity.ok(userService.validateUser(authHeader.substring(7)));
     }
 
     @GetMapping(path = "/{userName}")
     public ResponseEntity<UserDto> getUserByName(@PathVariable String userName) {
         return ResponseEntity.ok(userService.getUserByName(userName));
+    }
+
+    private String parseRefreshTokenFromCookie(HttpServletRequest request) {
+        if (request.getCookies() == null) return null;
+        return Stream.of(request.getCookies())
+                .filter(cookie -> cookie.getName().equals("refreshToken"))
+                .map(Cookie::getValue)
+                .findFirst()
+                .orElse(null);
     }
 }

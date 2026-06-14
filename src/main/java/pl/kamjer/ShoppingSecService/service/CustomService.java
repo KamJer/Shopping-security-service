@@ -15,7 +15,17 @@ public class CustomService {
     protected UserRepository userRepository;
 
     public User getUserFromAuth() throws NoResourcesFoundException {
-        String userName = ((UserDetails) SecurityContextHolder.getContext().getAuthentication().getPrincipal()).getUsername();
-        return userRepository.findByUserName(userName).orElseThrow(() -> new NoResourcesFoundException("No such User"));
+        var authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null) {
+            throw new NoResourcesFoundException("No authentication found");
+        }
+        Object principal = authentication.getPrincipal();
+        if (principal == null) {
+            throw new NoResourcesFoundException("No authenticated user");
+        }
+        if (!(principal instanceof UserDetails userDetails)) {
+            throw new NoResourcesFoundException("Unexpected principal type: " + principal.getClass());
+        }
+        return userRepository.findByUserName(userDetails.getUsername()).orElseThrow(() -> new NoResourcesFoundException("No such User"));
     }
 }
