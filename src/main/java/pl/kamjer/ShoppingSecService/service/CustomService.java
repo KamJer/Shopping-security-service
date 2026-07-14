@@ -17,7 +17,7 @@ public class CustomService {
     public User getUserFromAuth() throws NoResourcesFoundException {
         var authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null) {
-            throw new NoResourcesFoundException("No authentication found");
+            throw new NoResourcesFoundException("No authentication found ");
         }
         Object principal = authentication.getPrincipal();
         if (principal == null) {
