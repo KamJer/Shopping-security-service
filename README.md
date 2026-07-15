@@ -78,26 +78,22 @@ This service provides authentication for the entire shopping-list ecosystem. Oth
 
 ## Configuration
 
+All configuration is in `src/main/resources/application.properties`. Sensitive values are set via environment variables:
+
+| Variable | Description |
+|----------|-------------|
+| `DB_USERNAME` | MariaDB username |
+| `DB_PASSWORD` | MariaDB password |
+| `JWT_ACCESS_SECRET` | HMAC secret for access JWTs (HS256) |
+| `JWT_REFRESH_SECRET` | HMAC secret for refresh JWTs (HS256) |
+
 ### Profiles
 
-| Profile | Config | Secrets |
-|---------|--------|---------|
-| Default | `application.properties` | None |
-| `dev` | `application-dev.properties` | Imports `application-secret-dev.properties` |
-| `prod` | `application-prod.properties` | Imports `application-secret-prod.properties` |
-
-### Secret properties (gitignored)
-
-Create `application-secret-dev.properties` and/or `application-secret-prod.properties` in `src/main/resources/` with:
-
-| Property | Purpose |
-|----------|---------|
-| `spring.datasource.username` | Database user |
-| `spring.datasource.password` | Database password |
-| `spring.flyway.user` | Flyway user |
-| `spring.flyway.password` | Flyway password |
-| `jwt.secret_key.access` | HMAC secret for access JWTs (HS256) |
-| `jwt.secret_key.refresh` | HMAC secret for refresh JWTs (HS256) |
+| Profile | Config | Behavior |
+|---------|--------|----------|
+| Default | `application.properties` | Local defaults |
+| `dev` | `application-dev.properties` | JPA `ddl-auto=none` |
+| `prod` | `application-prod.properties` | JPA `ddl-auto=none`, Actuator disabled |
 
 ### Default settings (`application.properties`)
 
@@ -131,9 +127,23 @@ Managed by Flyway migrations (`src/main/resources/db/migration/`).
 
 ## Build and run
 
+You need **JDK 21**, **Maven 3.8+**, and a running **MariaDB** instance with database `shopping_list_users_db`.
+
 ```bash
-mvn clean package -DskipTests
+# Set required environment variables
+export DB_USERNAME=your_db_user
+export DB_PASSWORD=your_db_password
+export JWT_ACCESS_SECRET=your-access-secret-min-256-bits
+export JWT_REFRESH_SECRET=your-refresh-secret-min-256-bits
+
+# Build
+mvn clean package
+
+# Run with dev profile
 java -jar target/ShoppingSecService-0.0.1-SNAPSHOT.jar --spring.profiles.active=dev
+
+# Run with prod profile
+java -jar target/ShoppingSecService-0.0.1-SNAPSHOT.jar --spring.profiles.active=prod
 ```
 
 Development:
@@ -144,26 +154,145 @@ mvn spring-boot:run -Dspring-boot.run.profiles=dev
 
 ## API
 
-All endpoints mapped to `/user`.
+All endpoints are mapped to `/user`.  
+Authentication is via `Authorization: Bearer <JWT>` header unless stated otherwise.
+
+### Endpoints
 
 | Method | Path | Auth | Request | Response | Description |
 |--------|------|------|---------|----------|-------------|
-| `POST` | `/user` | Public | `UserRequestDto` | `LocalDateTime` | Register user |
-| `POST` | `/user/register` | Public | `UserRequestDto` | `TokenDto` + cookie | Register + auto-login |
+| `POST` | `/user` | Public | `UserRequestDto` | `LocalDateTime` | Register user (returns savedTime) |
+| `POST` | `/user/register` | Public | `UserRequestDto` | `TokenDto` + cookie | Register and auto‑login |
 | `POST` | `/user/log` | Public | `UserRequestDto` | `TokenDto` + cookie | Login |
-| `GET` | `/user/logout` | Public | – | `Boolean(true)` + cleared cookie | Revoke all tokens + clear cookie |
-| `GET` | `/user/refresh` | Refresh token (cookie or header) | – | `TokenDto` + new cookie | Rotate refresh token |
+| `GET` | `/user/logout` | Public | — | `Boolean(true)` + cleared cookie | Revoke all tokens, clear cookie |
+| `GET` | `/user/refresh` | Refresh token¹ | — | `TokenDto` + new cookie | Rotate refresh token |
 | `GET` | `/user` | Public | `Authorization: Bearer <token>` | `UserInfoDto` | Validate access token |
-| `GET` | `/user/{userName}` | Authenticated | – | `UserDto` | Get user profile |
-| `PUT` | `/user/savedTime` | Authenticated | `UserDto` (body) | `200 OK` | Update saved time (always for authenticated user, ignores body userName) |
+| `GET` | `/user/{userName}` | JWT | — | `UserDto` | Get user profile |
+| `PUT` | `/user/savedTime` | JWT | `UserDto` | `200 OK` | Update savedTime (ignores body.userName, uses authenticated user) |
 
-### Refresh token rotation flow
+¹ The refresh token can be sent in the `Authorization: Bearer <refreshToken>` header **or** in the `refreshToken` cookie.
 
-1. Client calls `GET /user/refresh` with the refresh token in the `Authorization` header (Bearer) or `refreshToken` cookie
-2. Server extracts the `jti` claim from the token and looks up the `RefreshToken` entity with a pessimistic write lock
-3. If the token is revoked → **reuse detected**: all tokens for that user are revoked, a warning is logged, and `401` is returned
-4. If expired → `401`
-5. Otherwise: marks the current token revoked, generates a new access token (15 min) and new refresh token (14 days), persists the new refresh token, returns the pair
+### Data types – JSON schemas
+
+#### `UserRequestDto`
+
+```json
+{
+  "userName": "jan_kowalski",
+  "password": "bezpieczneHaslo123",
+  "savedTime": null
+}
+```
+
+| Field | Type | Constraints | Description |
+|-------|------|-------------|-------------|
+| `userName` | string | **Required,** unique | Username |
+| `password` | string | **Required,** 8–64 chars | Plain‑text password (BCrypt hashed server‑side) |
+| `savedTime` | string (ISO‑8601, nullable) | — | Initial timestamp (usually `null`) |
+
+#### `TokenDto`
+
+```json
+{
+  "accessToken": "eyJhbGciOiJIUzI1NiJ9...",
+  "refreshToken": "eyJhbGciOiJIUzI1NiJ9..."
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `accessToken` | string (JWT) | Short‑lived (15 min). Sent as `Authorization: Bearer <token>` |
+| `refreshToken` | string (JWT) | Long‑lived (14 days). Also set as `HttpOnly; Secure; SameSite=Strict` cookie |
+
+#### `UserInfoDto`
+
+```json
+{
+  "userName": "jan_kowalski",
+  "role": "USER"
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `userName` | string | Username |
+| `role` | enum | `USER` or `ADMIN` |
+
+### Example flows
+
+#### Registration + auto‑login
+
+```
+POST /user/register
+Content-Type: application/json
+
+{
+  "userName": "jan_kowalski",
+  "password": "bezpieczneHaslo123"
+}
+
+→ 200 OK
+Set-Cookie: refreshToken=eyJ...; HttpOnly; Secure; SameSite=Strict
+{
+  "accessToken": "eyJhbGciOiJIUzI1NiJ9...",
+  "refreshToken": "eyJhbGciOiJIUzI1NiJ9..."
+}
+```
+
+#### Login
+
+```
+POST /user/log
+Content-Type: application/json
+
+{
+  "userName": "jan_kowalski",
+  "password": "bezpieczneHaslo123"
+}
+
+→ 200 OK
+Set-Cookie: refreshToken=eyJ...; HttpOnly; Secure; SameSite=Strict
+{
+  "accessToken": "eyJhbGciOiJIUzI1NiJ9...",
+  "refreshToken": "eyJhbGciOiJIUzI1NiJ9..."
+}
+```
+
+#### Token validation (from other services)
+
+```
+GET /user
+Authorization: Bearer eyJhbGciOiJIUzI1NiJ9...
+
+→ 200 OK
+{
+  "userName": "jan_kowalski",
+  "role": "USER"
+}
+```
+
+#### Refresh token rotation
+
+```
+GET /user/refresh
+Cookie: refreshToken=eyJhbGciOiJIUzI1NiJ9...
+
+→ 200 OK
+Set-Cookie: refreshToken=eyJ...; HttpOnly; Secure; SameSite=Strict
+{
+  "accessToken": "eyJhbGciOiJIUzI1NiJ9...",
+  "refreshToken": "eyJhbGciOiJIUzI1NiJ9..."
+}
+```
+
+### Refresh token rotation flow (detailed)
+
+1. Client calls `GET /user/refresh` with the refresh token in the `Authorization` header (Bearer) or `refreshToken` cookie.
+2. Server extracts the `jti` claim from the token and looks up the `RefreshToken` entity with a **pessimistic write lock**.
+3. **If revoked** → **reuse detected**: all tokens for that user are revoked, a warning is logged, and `401` is returned.
+4. **If expired** → `401`.
+5. Otherwise: marks the current token as revoked, generates **new** access token (15 min) + refresh token (14 days), persists the new refresh token, and returns the pair.
+6. The old token can no longer be used.
 
 ### Security
 

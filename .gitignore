@@ -32,4 +32,8 @@ build/
 ### VS Code ###
 .vscode/
 
+### Secret properties ###
+application-secret*.properties
+
+### Logs ###
 **/logs/
