@@ -8,8 +8,8 @@ import java.time.LocalDateTime;
 
 @Builder
 @Getter
-public class UserInfoDto {
+public class UserAdminDto {
     private String userName;
-    private LocalDateTime savedTime;
     private Role role;
+    private LocalDateTime savedTime;
 }

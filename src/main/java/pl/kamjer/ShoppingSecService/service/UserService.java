@@ -6,15 +6,18 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import pl.kamjer.ShoppingSecService.exception.ForbiddenException;
 import pl.kamjer.ShoppingSecService.exception.NoResourcesFoundException;
 import pl.kamjer.ShoppingSecService.model.User;
 import pl.kamjer.ShoppingSecService.model.dto.TokenDto;
+import pl.kamjer.ShoppingSecService.model.dto.UserAdminDto;
 import pl.kamjer.ShoppingSecService.model.dto.UserDto;
 import pl.kamjer.ShoppingSecService.model.dto.UserInfoDto;
 import pl.kamjer.ShoppingSecService.model.dto.UserRequestDto;
 import pl.kamjer.ShoppingSecService.repository.UserRepository;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Service
 public class UserService extends CustomService {
@@ -64,23 +67,65 @@ public class UserService extends CustomService {
         return jwtService.newTokens(user);
     }
 
-    @Transactional
-    public UserDto getUserByName(String userName) {
-        User user = userRepository.findByUserName(userName).orElseThrow(() -> new NoResourcesFoundException("No such User"));
-        return UserDto.builder()
-                .userName(user.getUserName())
-                .savedTime(user.getSavedTime())
-                .build();
-    }
-
     public UserInfoDto validateUser(String token) {
-        if(jwtService.isAccessValid(token)) {
+        if (jwtService.isAccessValid(token)) {
             User user = userRepository.findByUserName(jwtService.extractUsernameAccess(token)).orElseThrow(() -> new BadCredentialsException("Invalid or expired token"));
             return UserInfoDto.builder()
                     .userName(user.getUserName())
+                    .savedTime(user.getSavedTime())
                     .role(user.getRole())
                     .build();
         }
         throw new BadCredentialsException("Invalid or expired token");
+    }
+
+    @Transactional
+    public List<UserAdminDto> getAllUsers() {
+        return userRepository.findAllByOrderByUserNameAsc().stream()
+                .map(user -> UserAdminDto.builder()
+                        .userName(user.getUserName())
+                        .role(user.getRole())
+                        .savedTime(user.getSavedTime())
+                        .build())
+                .toList();
+    }
+
+    @Transactional
+    public void changeUserRole(String userName, Role role) {
+        User user = userRepository.findByUserName(userName)
+                .orElseThrow(() -> new NoResourcesFoundException("No such User found: " + userName));
+        if (getUserFromAuth().getUserName().equals(userName)) {
+            throw new ForbiddenException("You cannot change your own role: " + userName);
+        }
+        if (user.getRole() == Role.SUPER_ADMIN) {
+            throw new ForbiddenException("The SUPER_ADMIN account cannot be demoted: " + userName);
+        }
+        if (role == Role.SUPER_ADMIN) {
+            throw new ForbiddenException("The SUPER_ADMIN role can only be granted via bootstrap configuration");
+        }
+        if (role == Role.USER && user.getRole() == Role.ADMIN
+                && userRepository.countByRole(Role.ADMIN) <= 1
+                && userRepository.countByRole(Role.SUPER_ADMIN) == 0) {
+            throw new ForbiddenException("Cannot demote the last ADMIN user: " + userName);
+        }
+        user.setRole(role);
+    }
+
+    @Transactional
+    public void deleteUser(String userName) {
+        User user = userRepository.findByUserName(userName)
+                .orElseThrow(() -> new NoResourcesFoundException("No such User found: " + userName));
+        if (getUserFromAuth().getUserName().equals(userName)) {
+            throw new ForbiddenException("You cannot delete your own account: " + userName);
+        }
+        if (user.getRole() == Role.SUPER_ADMIN) {
+            throw new ForbiddenException("The SUPER_ADMIN account cannot be deleted: " + userName);
+        }
+        if (user.getRole() == Role.ADMIN
+                && userRepository.countByRole(Role.ADMIN) <= 1
+                && userRepository.countByRole(Role.SUPER_ADMIN) == 0) {
+            throw new ForbiddenException("Cannot delete the last ADMIN user: " + userName);
+        }
+        userRepository.delete(user);
     }
 }

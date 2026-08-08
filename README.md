@@ -86,6 +86,8 @@ All configuration is in `src/main/resources/application.properties`. Sensitive v
 | `DB_PASSWORD` | MariaDB password |
 | `JWT_ACCESS_SECRET` | HMAC secret for access JWTs (HS256) |
 | `JWT_REFRESH_SECRET` | HMAC secret for refresh JWTs (HS256) |
+| `ADMIN_USERNAME` | Optional: username of the first `ADMIN` account created at startup (`AdminBootstrap`) |
+| `ADMIN_PASSWORD` | Optional: password for the first `ADMIN` account created at startup |
 
 ### Profiles
 
@@ -168,6 +170,9 @@ Authentication is via `Authorization: Bearer <JWT>` header unless stated otherwi
 | `GET` | `/user/refresh` | Refresh token¹ | — | `TokenDto` + new cookie | Rotate refresh token |
 | `GET` | `/user` | Public | `Authorization: Bearer <token>` | `UserInfoDto` | Validate access token |
 | `GET` | `/user/{userName}` | JWT | — | `UserDto` | Get user profile |
+| `GET` | `/user/all` | ADMIN | — | `UserAdminDto[]` | List all users (admin panel) |
+| `PATCH` | `/user/{userName}/role/{role}` | ADMIN | — | `200 OK` | Change user role to `USER`/`ADMIN` (last admin protected) |
+| `DELETE` | `/user/{userName}` | ADMIN | — | `200 OK` | Delete user (refresh tokens cascade; last admin protected) |
 | `PUT` | `/user/savedTime` | JWT | `UserDto` | `200 OK` | Update savedTime (ignores body.userName, uses authenticated user) |
 
 ¹ The refresh token can be sent in the `Authorization: Bearer <refreshToken>` header **or** in the `refreshToken` cookie.
@@ -303,6 +308,7 @@ Set-Cookie: refreshToken=eyJ...; HttpOnly; Secure; SameSite=Strict
   - For `/user/refresh`: validates as a refresh token
   - For all other paths: validates as an access token
 - **Permitted paths:** `GET /user`, `POST /user`, `POST /user/register`, `POST /user/log`, `GET /user/logout`
+- **Admin-only paths (`ROLE_ADMIN`):** `GET /user/all`, `PATCH /user/{userName}/role/{role}`, `DELETE /user/{userName}`
 - **All other paths:** require valid authentication
 
 ### Token details

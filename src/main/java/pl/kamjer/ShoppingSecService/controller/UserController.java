@@ -11,14 +11,17 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.web.bind.annotation.*;
 import pl.kamjer.ShoppingSecService.model.dto.TokenDto;
+import pl.kamjer.ShoppingSecService.model.dto.UserAdminDto;
 import pl.kamjer.ShoppingSecService.model.dto.UserDto;
 import pl.kamjer.ShoppingSecService.model.dto.UserInfoDto;
 import pl.kamjer.ShoppingSecService.model.dto.UserRequestDto;
 import pl.kamjer.ShoppingSecService.service.JwtService;
+import pl.kamjer.ShoppingSecService.service.Role;
 import pl.kamjer.ShoppingSecService.service.UserService;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.stream.Stream;
 
 import static pl.kamjer.ShoppingSecService.service.JwtService.REFRESH_TOKEN_EXP_DAYS;
@@ -110,9 +113,21 @@ public class UserController {
         return ResponseEntity.ok(userService.validateUser(authHeader.substring(7)));
     }
 
-    @GetMapping(path = "/{userName}")
-    public ResponseEntity<UserDto> getUserByName(@PathVariable String userName) {
-        return ResponseEntity.ok(userService.getUserByName(userName));
+    @GetMapping(path = "/all")
+    public ResponseEntity<List<UserAdminDto>> getAllUsers() {
+        return ResponseEntity.ok(userService.getAllUsers());
+    }
+
+    @PatchMapping(path = "/{userName}/role/{role}")
+    public ResponseEntity<Void> changeUserRole(@PathVariable String userName, @PathVariable Role role) {
+        userService.changeUserRole(userName, role);
+        return ResponseEntity.ok().build();
+    }
+
+    @DeleteMapping(path = "/{userName}")
+    public ResponseEntity<Void> deleteUser(@PathVariable String userName) {
+        userService.deleteUser(userName);
+        return ResponseEntity.ok().build();
     }
 
     private String parseRefreshTokenFromCookie(HttpServletRequest request) {

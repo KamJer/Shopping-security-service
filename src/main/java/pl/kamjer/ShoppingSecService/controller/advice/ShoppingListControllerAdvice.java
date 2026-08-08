@@ -9,6 +9,7 @@ import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import pl.kamjer.ShoppingSecService.exception.ForbiddenException;
 import pl.kamjer.ShoppingSecService.exception.NoResourcesFoundException;
 
 import java.security.Principal;
@@ -42,7 +43,14 @@ public class ShoppingListControllerAdvice {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ex.getMessage());
     }
 
-    @ExceptionHandler({HttpMessageNotReadableException.class, IllegalAccessException.class})
+    @ExceptionHandler({ForbiddenException.class})
+    public ResponseEntity<String> handleForbiddenExceptions(Exception ex, Principal principal) {
+        String textForError = textForError(principal);
+        log.error(textForError, ex);
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(ex.getMessage());
+    }
+
+    @ExceptionHandler({HttpMessageNotReadableException.class})
     public ResponseEntity<String> handleDeserializeException(Exception ex, Principal principal) {
         String textForError = textForError(principal);
         log.error(textForError, ex);
