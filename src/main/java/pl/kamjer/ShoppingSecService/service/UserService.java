@@ -128,4 +128,18 @@ public class UserService extends CustomService {
         }
         userRepository.delete(user);
     }
+
+    @Transactional
+    public void changeUserPassword(String userName, String newPassword) {
+        User user = userRepository.findByUserName(userName)
+                .orElseThrow(() -> new NoResourcesFoundException("No such User found: " + userName));
+        if (user.getRole() == Role.SUPER_ADMIN) {
+            throw new ForbiddenException("The SUPER_ADMIN account cannot be modified: " + userName);
+        }
+        if (newPassword == null || newPassword.length() < 8 || newPassword.length() > 64) {
+            throw new IllegalArgumentException("Password must be between 8 and 64 characters");
+        }
+        user.setPassword(passwordEncoder.encode(newPassword));
+        jwtService.revokeAllTokensForUser(userName);
+    }
 }

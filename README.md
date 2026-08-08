@@ -169,9 +169,9 @@ Authentication is via `Authorization: Bearer <JWT>` header unless stated otherwi
 | `GET` | `/user/logout` | Public | — | `Boolean(true)` + cleared cookie | Revoke all tokens, clear cookie |
 | `GET` | `/user/refresh` | Refresh token¹ | — | `TokenDto` + new cookie | Rotate refresh token |
 | `GET` | `/user` | Public | `Authorization: Bearer <token>` | `UserInfoDto` | Validate access token |
-| `GET` | `/user/{userName}` | JWT | — | `UserDto` | Get user profile |
 | `GET` | `/user/all` | ADMIN | — | `UserAdminDto[]` | List all users (admin panel) |
 | `PATCH` | `/user/{userName}/role/{role}` | ADMIN | — | `200 OK` | Change user role to `USER`/`ADMIN` (last admin protected) |
+| `PATCH` | `/user/{userName}/password` | ADMIN | `UserRequestDto` | `200 OK` | Change user password (8–64 chars; SUPER_ADMIN protected; tokens revoked) |
 | `DELETE` | `/user/{userName}` | ADMIN | — | `200 OK` | Delete user (refresh tokens cascade; last admin protected) |
 | `PUT` | `/user/savedTime` | JWT | `UserDto` | `200 OK` | Update savedTime (ignores body.userName, uses authenticated user) |
 
@@ -308,7 +308,7 @@ Set-Cookie: refreshToken=eyJ...; HttpOnly; Secure; SameSite=Strict
   - For `/user/refresh`: validates as a refresh token
   - For all other paths: validates as an access token
 - **Permitted paths:** `GET /user`, `POST /user`, `POST /user/register`, `POST /user/log`, `GET /user/logout`
-- **Admin-only paths (`ROLE_ADMIN`):** `GET /user/all`, `PATCH /user/{userName}/role/{role}`, `DELETE /user/{userName}`
+- **Admin-only paths (`ROLE_ADMIN`):** `GET /user/all`, `PATCH /user/{userName}/role/{role}`, `PATCH /user/{userName}/password`, `DELETE /user/{userName}`
 - **All other paths:** require valid authentication
 
 ### Token details

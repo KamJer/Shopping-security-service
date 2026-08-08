@@ -130,6 +130,12 @@ public class UserController {
         return ResponseEntity.ok().build();
     }
 
+    @PatchMapping(path = "/{userName}/password")
+    public ResponseEntity<Void> changeUserPassword(@PathVariable String userName, @RequestBody UserRequestDto user) {
+        userService.changeUserPassword(userName, user.getPassword());
+        return ResponseEntity.ok().build();
+    }
+
     private String parseRefreshTokenFromCookie(HttpServletRequest request) {
         if (request.getCookies() == null) return null;
         return Stream.of(request.getCookies())

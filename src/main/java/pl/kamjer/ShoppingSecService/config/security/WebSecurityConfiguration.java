@@ -78,6 +78,7 @@ public class WebSecurityConfiguration {
                                 .requestMatchers(HttpMethod.POST, "/user/register").permitAll()
                                 .requestMatchers(HttpMethod.GET, "/user/all").hasAnyRole("ADMIN", "SUPER_ADMIN")
                                 .requestMatchers(HttpMethod.PATCH, "/user/*/role/*").hasAnyRole("ADMIN", "SUPER_ADMIN")
+                                .requestMatchers(HttpMethod.PATCH, "/user/*/password").hasAnyRole("ADMIN", "SUPER_ADMIN")
                                 .requestMatchers(HttpMethod.DELETE, "/user/*").hasAnyRole("ADMIN", "SUPER_ADMIN")
                                 .anyRequest().authenticated()
 
