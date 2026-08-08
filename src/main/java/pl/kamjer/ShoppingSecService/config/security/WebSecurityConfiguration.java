@@ -7,7 +7,6 @@ import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
-import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
@@ -16,17 +15,10 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-import pl.kamjer.ShoppingSecService.service.JwtService;
 
 /**
  * Central configuration class for Spring Security in the application.
- * This class defines the security filters, authentication managers, password encoding,
- * and authorization rules for the application.
- * Annotations:
- * - @Configuration: Marks this class as a Spring configuration class.
- * - @EnableWebSecurity: Enables Spring Security's web security support.
- * - @AllArgsConstructor: Generates a constructor with all fields for dependency injection.
- * - @EnableGlobalMethodSecurity: Enables method-level security annotations (e.g., @PreAuthorize).
+ * Defines the security filter chain, authentication manager and password encoding.
  */
 @Configuration
 @EnableWebSecurity
@@ -35,8 +27,6 @@ import pl.kamjer.ShoppingSecService.service.JwtService;
 public class WebSecurityConfiguration {
 
     private AuthEntryPoint unauthorizedHandler;
-
-    private JwtService jwtService;
 
     private JwtAuthFilter jwtAuthFilter;
 
@@ -47,13 +37,11 @@ public class WebSecurityConfiguration {
     private final UserDetailService userDetailService;
 
     /**
-     * Configures the security filter chain for the application.
-     * This method defines:
-     * - Disables CSRF protection (common for stateless APIs).
-     * - Registers a custom filter to skip authorization for specific endpoints.
-     * - Defines authorization rules for HTTP requests.
-     * - Enables HTTP Basic authentication.
-     * - Configures headers (e.g., frame options).
+     * Configures the security filter chain for the application:
+     * - disables CSRF (stateless API)
+     * - sets stateless session policy
+     * - defines authorization rules per endpoint
+     * - registers the JWT authentication filter before the standard filter
      *
      * @param httpSecurity The HttpSecurity object used to configure security settings.
      * @return A configured SecurityFilterChain.

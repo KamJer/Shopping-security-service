@@ -1,11 +1,13 @@
 package pl.kamjer.ShoppingSecService.service;
 
 import jakarta.transaction.Transactional;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 import pl.kamjer.ShoppingSecService.exception.ForbiddenException;
 import pl.kamjer.ShoppingSecService.exception.NoResourcesFoundException;
 import pl.kamjer.ShoppingSecService.model.User;
@@ -137,7 +139,7 @@ public class UserService extends CustomService {
             throw new ForbiddenException("The SUPER_ADMIN account cannot be modified: " + userName);
         }
         if (newPassword == null || newPassword.length() < 8 || newPassword.length() > 64) {
-            throw new IllegalArgumentException("Password must be between 8 and 64 characters");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Password must be between 8 and 64 characters");
         }
         user.setPassword(passwordEncoder.encode(newPassword));
         jwtService.revokeAllTokensForUser(userName);

@@ -87,13 +87,20 @@ public class UserController {
 
     @GetMapping(path = "/refresh")
     public ResponseEntity<TokenDto> refresh(HttpServletRequest request) {
-        String token = request.getHeader("Authorization") == null ?
-                Stream.of(request.getCookies())
-                        .filter(cookie -> cookie.getName().equals("refreshToken"))
-                        .map(Cookie::getValue)
-                        .findFirst()
-                        .orElseThrow(() -> new BadCredentialsException("No token found"))
-                : request.getHeader("Authorization");
+        String authorizationHeader = request.getHeader("Authorization");
+        String token;
+        if (authorizationHeader != null) {
+            token = authorizationHeader;
+        } else {
+            token = request.getCookies() == null ? null : Stream.of(request.getCookies())
+                    .filter(cookie -> cookie.getName().equals("refreshToken"))
+                    .map(Cookie::getValue)
+                    .findFirst()
+                    .orElse(null);
+        }
+        if (token == null) {
+            throw new BadCredentialsException("No token found");
+        }
         TokenDto tokens = jwtService.refresh(token);
         ResponseCookie refreshCookie = ResponseCookie.from("refreshToken", tokens.getRefreshToken())
                 .httpOnly(true)

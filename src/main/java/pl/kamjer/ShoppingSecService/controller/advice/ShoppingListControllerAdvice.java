@@ -13,7 +13,6 @@ import pl.kamjer.ShoppingSecService.exception.ForbiddenException;
 import pl.kamjer.ShoppingSecService.exception.NoResourcesFoundException;
 
 import java.security.Principal;
-import java.util.Optional;
 
 @ControllerAdvice
 @Slf4j
@@ -74,9 +73,8 @@ public class ShoppingListControllerAdvice {
 
     private String textForError(Principal principal) {
         String text = "No user logged, public endpoint: ";
-        Optional<Principal> optionalPrincipal = Optional.ofNullable(principal);
-        if (optionalPrincipal.isPresent()) {
-            text = "User logged: " + optionalPrincipal.get().getName() + ": ";
+        if (principal != null) {
+            text = "User logged: " + principal.getName() + ": ";
         }
         return text;
     }

@@ -31,7 +31,6 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             FilterChain filterChain
     ) throws ServletException, IOException {
         String token = parseJwt(request);
-//        request
         if (token != null && request.getRequestURI().contains("/user/refresh")
                 && jwtService.isRefreshValid(token)) {
             authenticate(jwtService.extractUserNameRefresh(token), request, token);

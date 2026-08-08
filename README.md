@@ -95,7 +95,7 @@ All configuration is in `src/main/resources/application.properties`. Sensitive v
 |---------|--------|----------|
 | Default | `application.properties` | Local defaults |
 | `dev` | `application-dev.properties` | JPA `ddl-auto=none` |
-| `prod` | `application-prod.properties` | JPA `ddl-auto=none`, Actuator disabled |
+| `prod` | `application-prod.properties` | JPA `ddl-auto=none` |
 
 ### Default settings (`application.properties`)
 
@@ -103,7 +103,6 @@ All configuration is in `src/main/resources/application.properties`. Sensitive v
 - **Datasource:** `jdbc:mariadb://localhost:3306/shopping_list_users_db`
 - **Flyway:** enabled, same database
 - **JPA:** `ddl-auto` set per profile (`none` for dev/prod)
-- **Actuator:** disabled by default
 
 ## Database
 
@@ -173,7 +172,7 @@ Authentication is via `Authorization: Bearer <JWT>` header unless stated otherwi
 | `PATCH` | `/user/{userName}/role/{role}` | ADMIN | — | `200 OK` | Change user role to `USER`/`ADMIN` (last admin protected) |
 | `PATCH` | `/user/{userName}/password` | ADMIN | `UserRequestDto` | `200 OK` | Change user password (8–64 chars; SUPER_ADMIN protected; tokens revoked) |
 | `DELETE` | `/user/{userName}` | ADMIN | — | `200 OK` | Delete user (refresh tokens cascade; last admin protected) |
-| `PUT` | `/user/savedTime` | JWT | `UserDto` | `200 OK` | Update savedTime (ignores body.userName, uses authenticated user) |
+| `PUT` | `/user/savedTime` | JWT | `UserDto` | `200 OK` | Update savedTime (uses authenticated user) |
 
 ¹ The refresh token can be sent in the `Authorization: Bearer <refreshToken>` header **or** in the `refreshToken` cookie.
 
@@ -184,8 +183,7 @@ Authentication is via `Authorization: Bearer <JWT>` header unless stated otherwi
 ```json
 {
   "userName": "jan_kowalski",
-  "password": "bezpieczneHaslo123",
-  "savedTime": null
+  "password": "bezpieczneHaslo123"
 }
 ```
 
@@ -193,7 +191,6 @@ Authentication is via `Authorization: Bearer <JWT>` header unless stated otherwi
 |-------|------|-------------|-------------|
 | `userName` | string | **Required,** unique | Username |
 | `password` | string | **Required,** 8–64 chars | Plain‑text password (BCrypt hashed server‑side) |
-| `savedTime` | string (ISO‑8601, nullable) | — | Initial timestamp (usually `null`) |
 
 #### `TokenDto`
 
@@ -327,7 +324,7 @@ Set-Cookie: refreshToken=eyJ...; HttpOnly; Secure; SameSite=Strict
 mvn test
 ```
 
-H2 in-memory database available for test isolation.
+Tests require a MariaDB instance and the JWT secret environment variables.
 
 ## Project structure
 

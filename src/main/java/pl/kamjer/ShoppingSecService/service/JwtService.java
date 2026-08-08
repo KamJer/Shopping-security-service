@@ -47,7 +47,7 @@ public class JwtService {
         return Jwts.builder()
                 .setSubject(username)
                 .setIssuedAt(new Date())
-                .setExpiration(Date.from(expiration.atZone(ZoneId.systemDefault()).toInstant())) // 5min
+                .setExpiration(Date.from(expiration.atZone(ZoneId.systemDefault()).toInstant()))
                 .signWith(keyAccess)
                 .compact();
     }
@@ -133,7 +133,7 @@ public class JwtService {
 
     @Transactional
     public TokenDto refresh(String refreshToken) {
-        String processedToken = refreshToken.startsWith("Bearer") ? refreshToken.substring(7) : refreshToken;
+        String processedToken = refreshToken.startsWith("Bearer ") ? refreshToken.substring(7) : refreshToken;
 
         RefreshToken token = jwtRepository.findByJtiWithLock(extractJti(processedToken))
                 .orElseThrow(() -> new BadCredentialsException("Refresh token not found"));
