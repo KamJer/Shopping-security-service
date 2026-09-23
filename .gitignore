@@ -37,3 +37,6 @@ application-secret*.properties
 
 ### Logs ###
 **/logs/
+
+# Local reports
+raport.md
